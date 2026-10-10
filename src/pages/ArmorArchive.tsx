@@ -1,28 +1,50 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, X, ChevronRight, Shield } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Search, Filter, X, Shield, Sparkles, Zap, Cpu, Activity } from 'lucide-react';
 import { armorsData } from '../data/armors';
 import { Armor } from '../types';
+import { HolographicCard } from '../components/HolographicCard';
+import { HolographicArmorModel } from '../components/HolographicArmorModel';
+import { useStark } from '../context/StarkContext';
+import { starkAudio } from '../utils/starkAudio';
 
-export function ArmorArchive() {
+export const ArmorArchive: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const { theme, openSuitCompare } = useStark();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'mark'>('mark');
   const [selectedArmor, setSelectedArmor] = useState<Armor | null>(null);
 
+  // Check URL query param for highlighting armor
+  useEffect(() => {
+    const highlightId = searchParams.get('highlight');
+    if (highlightId) {
+      const match = armorsData.find((a) => a.id === highlightId);
+      if (match) setSelectedArmor(match);
+    }
+  }, [searchParams]);
+
   const categories = [
-    { id: 'all', label: 'All Armors' },
-    { id: 'mcu', label: 'MCU' },
-    { id: 'comics', label: 'Comics' },
-    { id: 'animation', label: 'Animation' },
-    { id: 'games', label: 'Games' },
+    { id: 'all', label: 'ALL SUITS' },
+    { id: 'mcu', label: 'MCU CANON' },
+    { id: 'comics', label: 'COMIC ARCHIVES' },
+    { id: 'animation', label: 'ANIMATED' },
+    { id: 'games', label: 'GAMING VAULT' },
   ];
 
   const filteredArmors = useMemo(() => {
-    let result = armorsData.filter(armor => {
-      const matchesSearch = searchQuery === '' ||
-        armor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (armor.mark && armor.mark.toLowerCase().includes(searchQuery.toLowerCase()));
+    let result = armorsData.filter((armor) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        searchQuery === '' ||
+        armor.name.toLowerCase().includes(q) ||
+        (armor.mark && armor.mark.toLowerCase().includes(q)) ||
+        armor.purpose.toLowerCase().includes(q) ||
+        armor.weapons.some((w) => w.toLowerCase().includes(q));
+
       const matchesCategory = selectedCategory === 'all' || armor.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
@@ -44,62 +66,77 @@ export function ArmorArchive() {
   }, [searchQuery, selectedCategory, sortBy]);
 
   return (
-    <div className="min-h-screen bg-black pt-20 px-4">
-      <div className="max-w-7xl mx-auto py-12">
-        {/* Header */}
+    <div className="min-h-screen bg-stark-darkest px-4 py-8 md:py-12">
+      <div className="max-w-7xl mx-auto space-y-10">
+        {/* Top Header & Stark Clearance Chip */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center space-y-3"
         >
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
+          <div
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border bg-stark-darker text-[10px] font-mono uppercase tracking-widest"
+            style={{ borderColor: `${theme.primaryColor}50`, color: theme.primaryColor }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ background: theme.primaryColor }} />
+            <span>STARK INDUSTRIES VAULT // HALL OF ARMORS</span>
+          </div>
+
+          <h1 className="font-display text-4xl md:text-6xl font-black uppercase text-white tracking-tight">
             ARMOR ARCHIVE
           </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Explore {armorsData.length} iconic Iron Man suits from the MCU and comics
+          <p className="text-sm font-mono text-gray-400 max-w-2xl mx-auto">
+            Classified technical dossiers, offensive payload specifications, and 3D schematics for {armorsData.length} Stark armor configurations.
           </p>
         </motion.div>
 
-        {/* Search and Filters */}
+        {/* Tactical Search & Filter Console */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8"
+          className="p-6 rounded-2xl border bg-stark-darker/90 backdrop-blur-xl space-y-6"
+          style={{ borderColor: `${theme.primaryColor}30` }}
         >
-          {/* Search Bar */}
-          <div className="relative max-w-xl mx-auto mb-6">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          {/* Search Input */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by armor name or Mark number..."
+              placeholder="SEARCH ARMOR BY MARK, NAME, WEAPON SYSTEM OR MISSION..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-gray-900 border border-arc-blue/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-arc-blue transition-colors"
+              className="w-full pl-12 pr-10 py-3.5 bg-black/70 border border-stark-border/60 rounded-xl text-white font-mono text-xs placeholder-gray-500 focus:outline-none focus:border-stark-gold transition-colors tracking-wider uppercase"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          {/* Filter Controls */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            {/* Category Filters */}
+          {/* Filter Chips & Sorting */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-gray-800 text-xs font-mono">
+            {/* Category Filter Pills */}
             <div className="flex flex-wrap items-center gap-2">
-              <Filter className="w-5 h-5 text-arc-blue" />
+              <span className="text-gray-500 uppercase flex items-center gap-1.5 mr-2">
+                <Filter className="w-3.5 h-3.5" style={{ color: theme.primaryColor }} />
+                SECTOR:
+              </span>
               {categories.map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                    starkAudio.playClick(900);
+                  }}
+                  className={`px-3.5 py-1.5 rounded-lg uppercase tracking-wider transition-all font-bold cursor-pointer ${
                     selectedCategory === cat.id
-                      ? 'bg-arc-blue text-black'
-                      : 'bg-gray-900 text-gray-300 hover:bg-gray-800 hover:text-white border border-arc-blue/20'
+                      ? 'bg-stark-gold text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                      : 'bg-black/50 text-gray-400 hover:text-white border border-gray-800'
                   }`}
                 >
                   {cat.label}
@@ -107,253 +144,281 @@ export function ArmorArchive() {
               ))}
             </div>
 
-            {/* Sort Options */}
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400 text-sm">Sort by:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'name' | 'mark')}
-                className="px-4 py-2 bg-gray-900 border border-arc-blue/20 rounded-lg text-white focus:outline-none focus:border-arc-blue"
+            {/* Sort Dropdown & Compare Shortcut */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => openSuitCompare()}
+                className="px-3.5 py-1.5 rounded-lg border border-stark-gold/40 text-stark-gold hover:bg-stark-gold/15 transition-colors flex items-center gap-1.5 cursor-pointer font-bold"
               >
-                <option value="mark">Mark Number</option>
-                <option value="name">Name</option>
-              </select>
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>COMPARE MATRIX</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 uppercase">SORT:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'name' | 'mark')}
+                  className="px-3 py-1.5 bg-black border border-gray-800 rounded-lg text-white font-mono text-xs focus:outline-none focus:border-stark-gold"
+                >
+                  <option value="mark">MARK NUMBER</option>
+                  <option value="name">ARMOR NAME</option>
+                </select>
+              </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Results Count */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-gray-400 text-sm mb-6"
-        >
-          Showing {filteredArmors.length} of {armorsData.length} armors
-        </motion.div>
+        {/* Catalog Counter */}
+        <div className="flex items-center justify-between font-mono text-xs text-gray-500 uppercase tracking-widest px-1">
+          <span>
+            SHOWING <strong className="text-white">{filteredArmors.length}</strong> OF {armorsData.length} COMBAT SUITS
+          </span>
+          <span>ARMOR CLEARANCE: UNRESTRICTED</span>
+        </div>
 
-        {/* Armor Grid */}
-        <motion.div
-          layout
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-        >
+        {/* Armor Grid with Holographic Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <AnimatePresence mode="popLayout">
             {filteredArmors.map((armor, index) => (
-              <motion.div
+              <HolographicCard
                 key={armor.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
+                variant="armor"
+                image={armor.image}
+                title={armor.name}
+                subtitle={armor.mark}
+                badges={[
+                  { text: armor.universe, color: '#C41E24' },
+                  { text: armor.category.toUpperCase(), color: '#D4AF37' },
+                ]}
+                metadata={[
+                  { label: 'DEBUT', value: armor.firstAppearance.split('(')[0].trim() },
+                  { label: 'ROLE', value: armor.purpose.length > 22 ? armor.purpose.slice(0, 22) + '...' : armor.purpose },
+                ]}
+                onClick={() => {
+                  setSelectedArmor(armor);
+                  starkAudio.playChirp();
+                }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ delay: index * 0.03 }}
-                onClick={() => setSelectedArmor(armor)}
-                className="cursor-pointer group"
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ delay: Math.min(index * 0.02, 0.3) }}
               >
-                <div className="bg-gradient-to-br from-gray-900 to-black border border-arc-blue/20 rounded-xl overflow-hidden hover:border-arc-blue/50 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-arc-blue/10">
-                  {/* Image Placeholder */}
-                  <div className="aspect-[4/5] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative overflow-hidden">
-                    <Shield className="w-24 h-24 text-arc-blue/20 group-hover:text-arc-blue/40 transition-colors" />
-                    <div className="absolute top-3 left-3">
-                      <span className="px-2 py-1 bg-arc-blue/90 text-black text-xs font-bold rounded uppercase">
-                        {armor.category}
-                      </span>
-                    </div>
-                    {armor.mark && (
-                      <div className="absolute top-3 right-3">
-                        <span className="px-2 py-1 bg-stark-red/90 text-white text-xs font-bold rounded">
-                          {armor.mark}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-4">
-                    <h3 className="text-lg font-bold text-white group-hover:text-arc-blue transition-colors mb-1">
-                      {armor.name}
-                    </h3>
-                    <p className="text-sm text-gray-400 mb-2">{armor.universe}</p>
-                    <p className="text-xs text-gray-500 line-clamp-2">
-                      {armor.purpose}
-                    </p>
-                    <div className="flex items-center text-arc-blue text-sm mt-3 font-medium group-hover:text-stark-gold transition-colors">
-                      <span>View Details</span>
-                      <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                    </div>
+                <div className="space-y-1.5 pt-1">
+                  <div className="text-[10px] font-mono text-gray-400">
+                    <span className="text-gray-500">WEAPONS: </span>
+                    <span className="text-gray-300">{armor.weapons.slice(0, 2).join(', ')}</span>
                   </div>
                 </div>
-              </motion.div>
+              </HolographicCard>
             ))}
           </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Empty State */}
         {filteredArmors.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
-          >
-            <Shield className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">No armors found</h3>
-            <p className="text-gray-400">Try adjusting your search or filters</p>
-          </motion.div>
+          <div className="text-center py-20 p-8 rounded-2xl border border-dashed border-gray-800 bg-stark-darker space-y-3">
+            <Shield className="w-12 h-12 text-gray-600 mx-auto animate-pulse" />
+            <h3 className="font-display text-xl font-bold text-white uppercase">NO MATCHING SUITS IN VAULT</h3>
+            <p className="text-xs font-mono text-gray-400">
+              Query returned zero records. Adjust parameters or clear search filters.
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('all');
+              }}
+              className="mt-2 px-4 py-2 rounded-lg bg-stark-gold text-black font-mono text-xs font-bold uppercase"
+            >
+              RESET FILTERS
+            </button>
+          </div>
         )}
 
-        {/* Armor Detail Modal */}
+        {/* ── Holographic Armor Detail Modal ──────────────────────────────── */}
         <AnimatePresence>
           {selectedArmor && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 bg-black/90 backdrop-blur-xl overflow-y-auto"
               onClick={() => setSelectedArmor(null)}
             >
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
+                initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
+                exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-gradient-to-br from-gray-900 to-black border border-arc-blue/30 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-stark-darker border rounded-3xl max-w-5xl w-full max-h-[92vh] overflow-y-auto shadow-[0_0_60px_rgba(0,0,0,0.9)] relative"
+                style={{ borderColor: `${theme.primaryColor}50` }}
               >
                 {/* Modal Header */}
-                <div className="sticky top-0 bg-gray-900/95 backdrop-blur-sm border-b border-arc-blue/20 p-6 flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
+                <div className="sticky top-0 bg-stark-darker/95 backdrop-blur-md border-b border-gray-800 p-6 flex items-start justify-between z-20">
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       {selectedArmor.mark && (
-                        <span className="px-3 py-1 bg-stark-red text-white text-sm font-bold rounded">
+                        <span className="px-3 py-0.5 bg-stark-gold text-black text-xs font-mono font-bold rounded uppercase">
                           {selectedArmor.mark}
                         </span>
                       )}
-                      <span className="px-3 py-1 bg-arc-blue/20 text-arc-blue text-sm font-medium rounded uppercase">
+                      <span className="px-3 py-0.5 bg-stark-red text-white text-xs font-mono font-bold rounded uppercase">
+                        {selectedArmor.universe}
+                      </span>
+                      <span className="px-3 py-0.5 border border-gray-700 text-gray-300 text-xs font-mono rounded uppercase">
                         {selectedArmor.category}
                       </span>
                     </div>
-                    <h2 className="text-3xl font-bold text-white">{selectedArmor.name}</h2>
-                    <p className="text-gray-400 mt-1">{selectedArmor.universe} • {selectedArmor.medium}</p>
+                    <h2 className="font-display text-2xl md:text-4xl font-black uppercase text-white tracking-wide">
+                      {selectedArmor.name}
+                    </h2>
+                    <p className="text-xs font-mono text-gray-400">
+                      FIRST MISSION // {selectedArmor.firstAppearance} ({selectedArmor.medium})
+                    </p>
                   </div>
-                  <button
-                    onClick={() => setSelectedArmor(null)}
-                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
-                  >
-                    <X className="w-6 h-6 text-gray-400" />
-                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const armorToCompare = selectedArmor;
+                        setSelectedArmor(null);
+                        openSuitCompare(armorToCompare.id);
+                      }}
+                      className="px-3 py-2 rounded-xl border border-stark-gold/60 text-stark-gold font-mono text-xs uppercase flex items-center gap-1.5 hover:bg-stark-gold/20 transition-colors"
+                      title="Load this suit in comparison matrix"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">COMPARE</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedArmor(null);
+                        starkAudio.playClick(700);
+                      }}
+                      className="p-2 hover:bg-gray-800 rounded-xl transition-colors border border-gray-700 text-gray-400 hover:text-white cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Modal Content */}
-                <div className="p-6">
-                  <div className="grid md:grid-cols-2 gap-8">
-                    {/* Left Column - Image Placeholder */}
-                    <div className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl flex items-center justify-center">
-                      <Shield className="w-32 h-32 text-arc-blue/30" />
+                {/* Modal Body Content */}
+                <div className="p-6 md:p-8 space-y-8">
+                  {/* Holographic 3D Interactive Model Showcase */}
+                  <div className="flex justify-center">
+                    <HolographicArmorModel
+                      markName={selectedArmor.mark || selectedArmor.name}
+                      category={selectedArmor.category.toUpperCase()}
+                      size="lg"
+                      showControls={true}
+                      interactive={true}
+                    />
+                  </div>
+
+                  {/* Overview Description */}
+                  <div className="p-6 rounded-2xl border border-stark-border/50 bg-black/60 space-y-2 font-mono">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-stark-gold">
+                      <Cpu className="w-4 h-4" />
+                      <span>MISSION PROFILE & TACTICAL OVERVIEW</span>
+                    </div>
+                    <p className="text-sm text-gray-200 leading-relaxed font-sans">
+                      {selectedArmor.description}
+                    </p>
+                    <div className="pt-2 text-xs text-gray-400">
+                      <span className="text-stark-gold">PRIMARY PURPOSE: </span>
+                      <span>{selectedArmor.purpose}</span>
+                    </div>
+                  </div>
+
+                  {/* Systems Breakdown Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Weapons Arsenal */}
+                    <div className="p-5 rounded-2xl border border-red-500/30 bg-red-950/20 space-y-3">
+                      <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-red-400 flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        <span>OFFENSIVE WEAPONS ARSENAL</span>
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedArmor.weapons.map((w) => (
+                          <span
+                            key={w}
+                            className="px-3 py-1 bg-red-950/80 border border-red-500/40 text-red-200 font-mono text-xs rounded-lg font-semibold"
+                          >
+                            {w}
+                          </span>
+                        ))}
+                      </div>
                     </div>
 
-                    {/* Right Column - Details */}
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-sm font-semibold text-arc-blue uppercase tracking-wider mb-2">
-                          Overview
-                        </h3>
-                        <p className="text-gray-300 leading-relaxed">
-                          {selectedArmor.description}
-                        </p>
+                    {/* Integrated Technologies */}
+                    <div className="p-5 rounded-2xl border border-cyan-500/30 bg-cyan-950/20 space-y-3">
+                      <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                        <Cpu className="w-4 h-4" />
+                        <span>INTEGRATED TECHNOLOGIES</span>
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedArmor.technologies.map((t) => (
+                          <span
+                            key={t}
+                            className="px-3 py-1 bg-cyan-950/80 border border-cyan-500/40 text-cyan-200 font-mono text-xs rounded-lg font-semibold"
+                          >
+                            {t}
+                          </span>
+                        ))}
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <h4 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-1">
-                            First Appearance
-                          </h4>
-                          <p className="text-white text-sm">{selectedArmor.firstAppearance}</p>
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-1">
-                            Purpose
-                          </h4>
-                          <p className="text-white text-sm">{selectedArmor.purpose}</p>
-                        </div>
+                    {/* Special Tactical Abilities */}
+                    <div className="p-5 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 space-y-3">
+                      <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        <span>SPECIAL COMBAT ABILITIES</span>
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedArmor.abilities.map((a) => (
+                          <span
+                            key={a}
+                            className="px-3 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 font-mono text-xs rounded-lg font-semibold"
+                          >
+                            {a}
+                          </span>
+                        ))}
                       </div>
+                    </div>
 
-                      <div>
-                        <h4 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-2">
-                          Key Technologies
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedArmor.technologies.map((tech) => (
-                            <span
-                              key={tech}
-                              className="px-3 py-1 bg-arc-blue/10 text-arc-blue text-xs rounded-full border border-arc-blue/20"
-                            >
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
+                    {/* Vulnerabilities & Design Constraints */}
+                    <div className="p-5 rounded-2xl border border-amber-500/30 bg-amber-950/20 space-y-3">
+                      <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                        <Activity className="w-4 h-4" />
+                        <span>KNOWN SYSTEM VULNERABILITIES</span>
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedArmor.weaknesses.map((wk) => (
+                          <span
+                            key={wk}
+                            className="px-3 py-1 bg-amber-950/80 border border-amber-500/40 text-amber-200 font-mono text-xs rounded-lg font-semibold"
+                          >
+                            {wk}
+                          </span>
+                        ))}
                       </div>
+                    </div>
+                  </div>
 
-                      <div>
-                        <h4 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-2">
-                          Weapons
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedArmor.weapons.map((weapon) => (
-                            <span
-                              key={weapon}
-                              className="px-3 py-1 bg-stark-red/10 text-stark-red text-xs rounded-full border border-stark-red/20"
-                            >
-                              {weapon}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-2">
-                          Abilities
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedArmor.abilities.map((ability) => (
-                            <span
-                              key={ability}
-                              className="px-3 py-1 bg-green-500/10 text-green-400 text-xs rounded-full border border-green-500/20"
-                            >
-                              {ability}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-2">
-                          Weaknesses
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedArmor.weaknesses.map((weakness) => (
-                            <span
-                              key={weakness}
-                              className="px-3 py-1 bg-yellow-500/10 text-yellow-400 text-xs rounded-full border border-yellow-500/20"
-                            >
-                              {weakness}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-2">
-                          Major Appearances
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedArmor.appearances.map((appearance) => (
-                            <span
-                              key={appearance}
-                              className="px-3 py-1 bg-gray-800 text-gray-300 text-xs rounded-full border border-gray-700"
-                            >
-                              {appearance}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                  {/* Cinematic Appearances */}
+                  <div className="p-5 rounded-2xl border border-gray-800 bg-stark-darker space-y-3">
+                    <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-gray-400">
+                      DOCUMENTED FIELD DEPLOYMENTS & APPEARANCES
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedArmor.appearances.map((app) => (
+                        <span
+                          key={app}
+                          className="px-3.5 py-1.5 bg-black/80 border border-gray-700 text-gray-200 font-mono text-xs rounded-xl"
+                        >
+                          {app}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -364,4 +429,4 @@ export function ArmorArchive() {
       </div>
     </div>
   );
-}
+};

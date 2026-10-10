@@ -58,6 +58,7 @@ export interface Technology {
   category: string;
   relatedArmor: string[];
   image: string;
+  inventor?: string;
   technicalDetails?: string;
   firstIntroduced?: string;
 }
@@ -73,6 +74,7 @@ export interface Movie {
   villains?: Villain[];
   synopsis: string;
   image: string;
+  poster?: string;
   boxOffice?: string;
   runtime?: string;
   keyScenes?: string[];

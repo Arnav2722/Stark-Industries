@@ -1,44 +1,64 @@
+import React, { useEffect, useState } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useStark } from '../context/StarkContext';
+import { starkAudio } from '../utils/starkAudio';
 
-export function HUDCursor() {
+export interface HUDCursorProps {
+  className?: string;
+}
+
+export const HUDCursor: React.FC<HUDCursorProps> = ({ className = '' }) => {
+  const { theme } = useStark();
   const [isInteractive, setIsInteractive] = useState(false);
   const [isActive, setIsActive] = useState(false);
-  // Store raw pixel position
+  const [coords, setCoords] = useState({ x: 0, y: 0 });
+
   const rawX = useMotionValue(-200);
   const rawY = useMotionValue(-200);
 
-  // Spring so it trails smoothly
-  const x = useSpring(rawX, { stiffness: 600, damping: 45, mass: 0.4 });
-  const y = useSpring(rawY, { stiffness: 600, damping: 45, mass: 0.4 });
+  const x = useSpring(rawX, { stiffness: 700, damping: 40, mass: 0.3 });
+  const y = useSpring(rawY, { stiffness: 700, damping: 40, mass: 0.3 });
 
   useEffect(() => {
+    let lastPlayed = 0;
+
     const onMove = (e: MouseEvent) => {
       rawX.set(e.clientX);
       rawY.set(e.clientY);
+      setCoords({ x: Math.round(e.clientX), y: Math.round(e.clientY) });
+
       const el = e.target as HTMLElement;
-      setIsInteractive(
-        !!(el.closest('a') || el.closest('button') || el.closest('[role="button"]'))
-      );
+      const interactive = !!(el.closest('a') || el.closest('button') || el.closest('[role="button"]') || el.closest('select') || el.closest('input'));
+
+      if (interactive && !isInteractive) {
+        const now = Date.now();
+        if (now - lastPlayed > 120) {
+          starkAudio.playClick(1100);
+          lastPlayed = now;
+        }
+      }
+      setIsInteractive(interactive);
     };
-    const onDown = () => setIsActive(true);
-    const onUp   = () => setIsActive(false);
+
+    const onDown = () => {
+      setIsActive(true);
+      starkAudio.playClick(650);
+    };
+    const onUp = () => setIsActive(false);
 
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mousedown', onDown);
-    window.addEventListener('mouseup',   onUp);
+    window.addEventListener('mouseup', onUp);
     return () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mousedown', onDown);
-      window.removeEventListener('mouseup',   onUp);
+      window.removeEventListener('mouseup', onUp);
     };
-  }, [rawX, rawY]);
+  }, [rawX, rawY, isInteractive]);
 
-  const color = isActive ? '#C41E24' : isInteractive ? '#D4AF37' : '#00bcd4';
-  const glow  = isActive ? 'rgba(196,30,36,0.4)' : isInteractive ? 'rgba(212,175,55,0.4)' : 'rgba(0,188,212,0.3)';
+  const color = isActive ? theme.accentColor : isInteractive ? theme.secondaryColor : theme.primaryColor;
+  const glow = isActive ? theme.accentColor : isInteractive ? theme.secondaryColor : theme.glowColor;
 
-  // Shared positioning: x/y are the cursor pixel coords.
-  // We use translateX/Y -50% to center each element on that point.
   const base = {
     position: 'fixed' as const,
     top: 0,
@@ -49,31 +69,31 @@ export function HUDCursor() {
   };
 
   return (
-    <>
-      {/* ── Outer rotating targeting ring ── */}
+    <div className={`hidden md:block pointer-events-none ${className}`}>
+      {/* Outer Targeting Ring */}
       <motion.div
         style={{
           ...base,
-          width: isActive ? 34 : isInteractive ? 42 : 30,
-          height: isActive ? 34 : isInteractive ? 42 : 30,
+          width: isActive ? 32 : isInteractive ? 46 : 28,
+          height: isActive ? 32 : isInteractive ? 46 : 28,
           translateX: '-50%',
           translateY: '-50%',
           borderRadius: '50%',
           border: `1.5px solid ${color}`,
-          boxShadow: `0 0 10px ${glow}, 0 0 20px ${glow}`,
+          boxShadow: `0 0 12px ${glow}`,
           zIndex: 9999,
         }}
         animate={{ rotate: [0, 360] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
       >
-        {/* Corner ticks */}
+        {/* Reticle Corner Brackets */}
         {(['tl', 'tr', 'bl', 'br'] as const).map((p) => (
           <span
             key={p}
             style={{
               position: 'absolute',
-              width: 6,
-              height: 6,
+              width: 5,
+              height: 5,
               borderColor: color,
               borderStyle: 'solid',
               borderWidth: 0,
@@ -86,12 +106,12 @@ export function HUDCursor() {
         ))}
       </motion.div>
 
-      {/* ── Inner dot ── */}
+      {/* Center Plasma Pip */}
       <motion.div
         style={{
           ...base,
-          width: isActive ? 6 : 4,
-          height: isActive ? 6 : 4,
+          width: isActive ? 5 : 3,
+          height: isActive ? 5 : 3,
           translateX: '-50%',
           translateY: '-50%',
           borderRadius: '50%',
@@ -99,69 +119,58 @@ export function HUDCursor() {
           boxShadow: `0 0 8px ${glow}`,
           zIndex: 9999,
         }}
-        animate={{ opacity: [1, 0.5, 1] }}
-        transition={{ duration: 1.5, repeat: Infinity }}
       />
 
-      {/* ── Horizontal crosshair ── */}
+      {/* Caliper Crosshairs */}
       <motion.div
         style={{
           ...base,
-          width: 20,
+          width: 18,
           height: 1,
           translateX: '-50%',
           translateY: '-50%',
-          background: `linear-gradient(90deg, transparent, ${color}90, transparent)`,
+          background: `linear-gradient(90deg, transparent, ${color}80, transparent)`,
           zIndex: 9998,
         }}
       />
-
-      {/* ── Vertical crosshair ── */}
       <motion.div
         style={{
           ...base,
           width: 1,
-          height: 20,
+          height: 18,
           translateX: '-50%',
           translateY: '-50%',
-          background: `linear-gradient(180deg, transparent, ${color}90, transparent)`,
+          background: `linear-gradient(180deg, transparent, ${color}80, transparent)`,
           zIndex: 9998,
         }}
       />
 
-      {/* ── "ENGAGE" label that appears on interactive elements ── */}
+      {/* Target Engagement Tag */}
       {isInteractive && (
         <motion.div
           style={{
             ...base,
-            // offset to the right & above so it doesn't sit on the ring
-            translateX: '18px',
-            translateY: '-140%',
+            translateX: '24px',
+            translateY: '-130%',
             zIndex: 9997,
           }}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.15 }}
         >
           <div
+            className="flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono tracking-widest uppercase backdrop-blur-md shadow-lg"
             style={{
-              background: 'rgba(0,0,0,0.8)',
-              border: `1px solid ${color}60`,
+              background: 'rgba(5, 5, 5, 0.9)',
+              border: `1px solid ${color}80`,
               color,
-              backdropFilter: 'blur(6px)',
-              padding: '2px 8px',
-              fontSize: 9,
-              fontFamily: 'JetBrains Mono, monospace',
-              textTransform: 'uppercase',
-              letterSpacing: '0.15em',
-              whiteSpace: 'nowrap',
             }}
           >
-            ENGAGE ▶
+            <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ background: color }} />
+            <span>LOCK [{coords.x},{coords.y}]</span>
           </div>
         </motion.div>
       )}
-    </>
+    </div>
   );
-}
+};

@@ -31,6 +31,7 @@ export default {
           blueDark: '#0D3B66',
           dark: '#0A0A0A',
           darker: '#050505',
+          darkest: '#030303',
           panel: '#111111',
           panelLight: '#1A1A1A',
           border: '#222222',

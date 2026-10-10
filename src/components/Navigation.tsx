@@ -1,254 +1,209 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
-import { Menu, X, Shield, Zap, Wifi, Database, Cpu } from 'lucide-react';
-import { GlassPanel } from './GlassPanel';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X, Shield, Cpu, Database, Wifi, Film, Image, Building, Info, Terminal, Volume2, VolumeX } from 'lucide-react';
+import { useStark } from '../context/StarkContext';
+import { ArcReactor } from './ArcReactor';
+import { starkAudio } from '../utils/starkAudio';
+
+export interface NavigationProps {
+  className?: string;
+}
 
 const navLinks = [
-  { path: '/', label: 'HOME', icon: null, shortLabel: 'HOME', system: 'CORE' },
-  { path: '/armor', label: 'ARMOR ARCHIVE', icon: Shield, shortLabel: 'ARMORS', system: 'WEAPONS' },
-  { path: '/technology', label: 'TECHNOLOGY', icon: Cpu, shortLabel: 'TECH', system: 'R&D' },
-  { path: '/timeline', label: 'TIMELINE', icon: Database, shortLabel: 'TIMELINE', system: 'ARCHIVE' },
-  { path: '/characters', label: 'CHARACTERS', icon: Wifi, shortLabel: 'AGENTS', system: 'PERSONNEL' },
-  { path: '/movies', label: 'FILMOGRAPHY', icon: Zap, shortLabel: 'FILMS', system: 'MEDIA' },
-  { path: '/gallery', label: 'GALLERY', icon: Database, shortLabel: 'VISUAL', system: 'VAULT' },
-  { path: '/tower', label: 'AVENGERS TOWER', icon: Zap, shortLabel: 'TOWER', system: 'HQ' },
-  { path: '/about', label: 'ABOUT', icon: null, shortLabel: 'INFO', system: 'META' },
+  { path: '/', label: 'HOME', icon: Shield, system: 'CORE' },
+  { path: '/armor', label: 'ARMOR ARCHIVE', icon: Shield, system: 'WEAPONS' },
+  { path: '/technology', label: 'TECHNOLOGY', icon: Cpu, system: 'R&D' },
+  { path: '/timeline', label: 'TIMELINE', icon: Database, system: 'ARCHIVE' },
+  { path: '/characters', label: 'CHARACTERS', icon: Wifi, system: 'AGENTS' },
+  { path: '/movies', label: 'FILMOGRAPHY', icon: Film, system: 'MEDIA' },
+  { path: '/gallery', label: 'GALLERY', icon: Image, system: 'VAULT' },
+  { path: '/tower', label: 'AVENGERS TOWER', icon: Building, system: 'HQ' },
+  { path: '/about', label: 'ABOUT', icon: Info, system: 'INFO' },
 ];
 
-export function Navigation() {
+export const Navigation: React.FC<NavigationProps> = ({ className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const location = useLocation();
-  const navRef = useRef<HTMLDivElement>(null);
-
-  // Mouse position for HUD effects
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
+  const { theme, aiMode, setAIMode, isMuted, toggleMute, toggleTerminal } = useStark();
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
+    const handleScroll = () => setScrolled(window.scrollY > 30);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Track mouse for HUD effects
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (navRef.current) {
-        const rect = navRef.current.getBoundingClientRect();
-        mouseX.set(e.clientX - rect.left);
-        mouseY.set(e.clientY - rect.top);
-      }
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseX, mouseY]);
-
   return (
-    <>
-      {/* Top Bar */}
-      <motion.div
-        ref={navRef}
-        className="fixed top-0 left-0 right-0 z-[50] pointer-events-none"
-        style={{ height: '88px' }}
-        initial={{ y: 0 }}
-        animate={{ y: 0 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${className}`}>
+      {/* Top Glassmorphic Navigation Bar */}
+      <div
+        className={`w-full border-b transition-all duration-300 ${
+          scrolled
+            ? 'bg-stark-darker/95 backdrop-blur-2xl py-3 border-stark-border/60 shadow-[0_10px_30px_rgba(0,0,0,0.8)]'
+            : 'bg-stark-darker/70 backdrop-blur-md py-4 border-stark-border/20'
+        }`}
+        style={{
+          borderBottomColor: scrolled ? `${theme.primaryColor}30` : undefined,
+        }}
       >
-        <div className="absolute inset-0 pointer-events-auto">
-          <GlassPanel
-            variant="dark"
-            padding="px-6 py-4"
-            border={scrolled}
-            hover={false}
-            className="rounded-none"
-            style={{
-              background: scrolled
-                ? 'rgba(5,5,5,0.95)'
-                : 'rgba(5,5,5,0.8)',
-              boxShadow: scrolled
-                ? '0 4px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(212,175,55,0.1)'
-                : 'none'
+        <div className="max-w-[1700px] mx-auto px-4 md:px-8 flex items-center justify-between">
+          {/* Stark Industries Brand Logo */}
+          <Link
+            to="/"
+            onClick={() => {
+              setIsOpen(false);
+              starkAudio.playChirp();
             }}
+            className="flex items-center gap-3.5 group cursor-pointer"
           >
-            <div className="max-w-[1600px] mx-auto flex items-center justify-between relative">
-              {/* HUD Top Decorations */}
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-stark-gold/30 to-transparent" />
-              <div className="absolute top-0 left-0 w-8 h-px bg-stark-gold" />
-              <div className="absolute top-0 right-0 w-8 h-px bg-stark-gold" />
-              <div className="absolute top-0 left-0 w-px h-8 bg-stark-gold" />
-              <div className="absolute top-0 right-0 w-px h-8 bg-stark-gold" />
+            {/* Animated Arc Reactor Emblem */}
+            <div className="relative">
+              <ArcReactor size={38} animate={true} interactive={false} />
+            </div>
 
-              {/* Logo */}
-              <Link
-                to="/"
-                className="flex items-center gap-3 group pointer-events-auto relative z-10"
-                onClick={() => setIsOpen(false)}
-              >
-                <motion.div
-                  whileHover={{ rotate: 360, scale: 1.1 }}
-                  transition={{ type: 'spring', stiffness: 400 }}
-                  className="relative w-10 h-10"
-                >
-                  <Shield className="w-10 h-10 text-stark-gold" />
-                  <motion.div
-                    className="absolute inset-0 rounded-full border border-stark-gold/30"
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
-                  {/* Energy ring */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full border-2 border-arc-500/30"
-                    animate={{ rotate: [0, 360] }}
-                    transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-                  />
-                </motion.div>
-                <span className="font-display text-xl font-bold tracking-wider text-white">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="font-display text-lg md:text-xl font-black tracking-wider text-white group-hover:text-stark-gold transition-colors">
                   STARK INDUSTRIES
                 </span>
-                <motion.div
-                  className="ml-2 pl-2 border-l border-stark-gold/30 hidden md:block"
-                  initial={{ opacity: 0, scaleX: 0 }}
-                  animate={{ opacity: 1, scaleX: 1 }}
-                  transition={{ delay: 1, duration: 0.5 }}
+                <span
+                  className="hidden sm:inline-block px-2 py-0.5 text-[9px] font-mono font-bold uppercase rounded border"
+                  style={{
+                    background: `${theme.primaryColor}15`,
+                    borderColor: `${theme.primaryColor}40`,
+                    color: theme.primaryColor,
+                  }}
                 >
-                  <div className="text-[10px] text-stark-gold/60 font-mono tracking-widest uppercase">
-                    J.A.R.V.I.S. ONLINE
-                  </div>
-                </motion.div>
-              </Link>
-
-              {/* System Status Indicators */}
-              <motion.div
-                className="hidden lg:flex items-center gap-4 ml-8 pointer-events-auto"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2 }}
-              >
-                <div className="flex items-center gap-1 text-xs">
-                  <div className="w-1.5 h-1.5 rounded-full bg-arc-500 animate-pulse" />
-                  <span className="font-mono text-arc-400/80">SYS</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs">
-                  <div className="w-1.5 h-1.5 rounded-full bg-stark-gold animate-pulse" style={{ animationDelay: '0.5s' }} />
-                  <span className="font-mono text-stark-gold/80">ARC</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs">
-                  <div className="w-1.5 h-1.5 rounded-full bg-arc-500 animate-pulse" style={{ animationDelay: '1s' }} />
-                  <span className="font-mono text-arc-400/80">NAV</span>
-                </div>
-              </motion.div>
-
-              {/* Desktop Nav */}
-              <nav className="hidden lg:flex items-center gap-1 pointer-events-auto relative z-10">
-                {navLinks.map((link) => {
-                  const isActive = location.pathname === link.path;
-                  const Icon = link.icon;
-                  const isHovered = hoveredLink === link.path;
-
-                  return (
-                    <Link
-                      key={link.path}
-                      to={link.path}
-                      onClick={() => setIsOpen(false)}
-                      onMouseEnter={() => setHoveredLink(link.path)}
-                      onMouseLeave={() => setHoveredLink(null)}
-                      className={`relative flex items-center gap-2 px-4 py-2.5 rounded-lg font-display text-sm font-medium tracking-wider uppercase transition-all duration-300 group
-                        ${isActive
-                          ? 'text-stark-gold bg-stark-gold/10 border border-stark-gold/20'
-                          : 'text-gray-300 hover:text-white hover:bg-stark-panel/50'}
-                      `}
-                    >
-                      {Icon && (
-                        <motion.span
-                          whileHover={{ rotate: 180, scale: 1.2 }}
-                          transition={{ type: 'spring', stiffness: 400 }}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </motion.span>
-                      )}
-                      <span>{link.label}</span>
-
-                      {/* HUD System Tag */}
-                      <motion.span
-                        className="text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity ml-2"
-                        style={{ color: isActive ? '#D4AF37' : '#00bcd4' }}
-                        initial={{ x: -10 }}
-                        animate={{ x: isHovered ? 0 : -10 }}
-                      >
-                        [{link.system}]
-                      </motion.span>
-
-                      {/* Active indicator with HUD style */}
-                      {isActive && (
-                        <motion.div
-                          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
-                          style={{ background: '#D4AF37', boxShadow: '0 0 10px #D4AF37' }}
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                        />
-                      )}
-
-                      {/* Hover scan effect */}
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-stark-gold/10 to-transparent rounded-lg"
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: isHovered ? 1 : 0 }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="lg:hidden p-2 rounded-lg text-gray-300 hover:text-stark-gold hover:bg-stark-panel/50 transition-colors pointer-events-auto"
-              >
-                {isOpen ? (
-                  <motion.div
-                    initial={{ rotate: 0 }}
-                    animate={{ rotate: 90 }}
-                    className="w-6 h-6"
-                  >
-                    <X className="w-6 h-6" />
-                  </motion.div>
-                ) : (
-                  <Menu className="w-6 h-6" />
-                )}
-              </button>
+                  SEC-LEVEL 10
+                </span>
+              </div>
+              <span className="text-[10px] font-mono tracking-widest text-gray-400">
+                {theme.name} // {theme.statusText}
+              </span>
             </div>
-          </GlassPanel>
+          </Link>
 
-          {/* Bottom scan line when scrolled */}
-          {scrolled && (
-            <motion.div
-              className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-arc-500/40 to-transparent"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: [0, 1, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          )}
+          {/* Desktop Navigation Links */}
+          <nav className="hidden xl:flex items-center gap-1">
+            {navLinks.map((link) => {
+              const isActive = location.pathname === link.path;
+              const Icon = link.icon;
+
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onMouseEnter={() => {
+                    starkAudio.playClick(900);
+                  }}
+                  onClick={() => starkAudio.playChirp()}
+                  className={`relative flex items-center gap-2 px-3.5 py-2 rounded-lg font-display text-xs font-semibold tracking-wider uppercase transition-all duration-200 group ${
+                    isActive
+                      ? 'text-white border shadow-md'
+                      : 'text-gray-400 hover:text-white hover:bg-stark-panel/60 border border-transparent'
+                  }`}
+                  style={
+                    isActive
+                      ? {
+                          background: `linear-gradient(135deg, ${theme.primaryColor}20, ${theme.secondaryColor}15)`,
+                          borderColor: `${theme.primaryColor}60`,
+                          color: '#ffffff',
+                          boxShadow: `0 0 15px ${theme.bgGlow}`,
+                        }
+                      : {}
+                  }
+                >
+                  <Icon
+                    className="w-3.5 h-3.5 transition-transform group-hover:scale-110"
+                    style={{ color: isActive ? theme.primaryColor : undefined }}
+                  />
+                  <span>{link.label}</span>
+
+                  {/* Micro System Tag */}
+                  <span
+                    className="text-[9px] font-mono opacity-60 ml-0.5"
+                    style={{ color: isActive ? theme.secondaryColor : '#666' }}
+                  >
+                    [{link.system}]
+                  </span>
+
+                  {/* Active Indicator Pip */}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeNavPip"
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full"
+                      style={{ background: theme.primaryColor, boxShadow: `0 0 8px ${theme.primaryColor}` }}
+                    />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right Action Utilities (AI Mode Switcher, Terminal, Mobile Menu) */}
+          <div className="flex items-center gap-2.5">
+            {/* AI Assistant Quick Selector */}
+            <div className="hidden sm:flex items-center gap-1 bg-black/60 p-1 rounded-lg border border-stark-border/60">
+              {(['jarvis', 'friday', 'edith'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setAIMode(mode)}
+                  className={`px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded transition-all ${
+                    aiMode === mode
+                      ? 'font-bold shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                  style={
+                    aiMode === mode
+                      ? {
+                          background: theme.primaryColor,
+                          color: '#000000',
+                        }
+                      : {}
+                  }
+                  title={`Switch active AI to ${mode.toUpperCase()}`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+
+            {/* Terminal Launcher Button */}
+            <button
+              onClick={toggleTerminal}
+              className="p-2 rounded-lg border bg-stark-panel/80 hover:bg-stark-panel text-white transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              style={{ borderColor: `${theme.primaryColor}50` }}
+              title="Open J.A.R.V.I.S. Command Terminal"
+            >
+              <Terminal className="w-4 h-4" style={{ color: theme.primaryColor }} />
+            </button>
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+              onClick={() => {
+                setIsOpen(!isOpen);
+                starkAudio.playClick(800);
+              }}
+              className="xl:hidden p-2 rounded-lg border bg-stark-panel/80 text-white transition-colors"
+              style={{ borderColor: `${theme.primaryColor}40` }}
+            >
+              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Drawer Menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed top-0 left-0 right-0 bottom-0 z-[51] bg-stark-dark/98 backdrop-blur-2xl flex flex-col items-center justify-center gap-8"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="xl:hidden bg-stark-darker/98 backdrop-blur-2xl border-b border-stark-border/80 px-6 py-8 overflow-hidden shadow-2xl"
           >
-            {/* Background pattern with circuit overlay */}
-            <div className="absolute inset-0 bg-grid opacity-10" />
-            <div className="absolute inset-0 circuit-pattern opacity-20" />
-
-            <nav className="relative z-10 flex flex-col items-center gap-6 w-full max-w-md px-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-xl mx-auto">
               {navLinks.map((link) => {
                 const isActive = location.pathname === link.path;
                 const Icon = link.icon;
@@ -256,54 +211,43 @@ export function Navigation() {
                   <Link
                     key={link.path}
                     to={link.path}
-                    onClick={() => setIsOpen(false)}
-                    className={`w-full text-center px-6 py-4 rounded-xl font-display text-lg font-medium tracking-wider uppercase transition-all duration-300 relative overflow-hidden
-                      ${isActive
-                        ? 'text-stark-gold bg-stark-gold/10 border border-stark-gold/30'
-                        : 'text-gray-200 hover:text-stark-gold hover:bg-stark-panel/50 border border-stark-border/30'}
-                    `}
-                    style={{ transitionDelay: '0s' }}
+                    onClick={() => {
+                      setIsOpen(false);
+                      starkAudio.playChirp();
+                    }}
+                    className={`flex items-center justify-between p-3.5 rounded-xl font-display text-sm font-semibold tracking-wider uppercase border transition-all ${
+                      isActive
+                        ? 'text-white border-stark-gold bg-stark-gold/15'
+                        : 'text-gray-300 hover:text-white border-stark-border/40 hover:bg-stark-panel/60'
+                    }`}
                   >
-                    <div className="flex items-center justify-center gap-3 relative z-10">
-                      {Icon && <Icon className="w-5 h-5" />}
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-4 h-4" style={{ color: theme.primaryColor }} />
                       <span>{link.label}</span>
                     </div>
-                    <div className="absolute top-0 right-0 p-2 text-xs font-mono opacity-50">
-                      {link.system}
-                    </div>
-                    {/* Scan line effect on hover */}
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-stark-gold/10 to-transparent"
-                      whileHover={{ scaleX: [0, 1] }}
-                      transition={{ duration: 0.5 }}
-                    />
+                    <span className="text-[10px] font-mono text-gray-500">[{link.system}]</span>
                   </Link>
                 );
               })}
-            </nav>
-
-            {/* System status bar at bottom */}
-            <div className="absolute bottom-16 left-1/2 -translate-x-1/2 flex gap-8 text-xs font-mono text-stark-gold/60">
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-arc-500 animate-pulse" />
-                <span>SYSTEMS NOMINAL</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-stark-gold animate-pulse" style={{ animationDelay: '0.5s' }} />
-                <span>ARC REACTOR STABLE</span>
-              </div>
             </div>
 
-            {/* Close button */}
-            <button
-              onClick={() => setIsOpen(false)}
-              className="absolute bottom-8 right-8 p-3 rounded-full bg-stark-panel/50 border border-stark-border/30 text-gray-400 hover:text-stark-gold hover:border-stark-gold/50 transition-all"
-            >
-              <X className="w-6 h-6" />
-            </button>
+            {/* Mobile Footer Utilities */}
+            <div className="mt-8 pt-6 border-t border-gray-800 flex items-center justify-between text-xs font-mono text-gray-400">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full animate-ping" style={{ background: theme.primaryColor }} />
+                <span>{theme.name} ACTIVE</span>
+              </div>
+              <button
+                onClick={toggleMute}
+                className="flex items-center gap-1.5 text-stark-gold hover:underline"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                <span>{isMuted ? 'UNMUTE AUDIO' : 'MUTE AUDIO'}</span>
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </header>
   );
-}
+};

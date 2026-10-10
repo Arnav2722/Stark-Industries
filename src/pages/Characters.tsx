@@ -1,203 +1,221 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, X, Search } from 'lucide-react';
+import { X, Search, Shield } from 'lucide-react';
 import { charactersData } from '../data/characters';
 import { Character } from '../types';
+import { HolographicCard } from '../components/HolographicCard';
+import { useStark } from '../context/StarkContext';
+import { starkAudio } from '../utils/starkAudio';
 
-export function Characters() {
+export const Characters: React.FC = () => {
+  const { theme } = useStark();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  const [filterType, setFilterType] = useState<'all' | 'allies' | 'enemies'>('all');
 
-  const filteredCharacters = charactersData.filter(char =>
-    char.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (char.alias && char.alias.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredCharacters = charactersData.filter((char) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      char.name.toLowerCase().includes(q) ||
+      (char.alias && char.alias.toLowerCase().includes(q)) ||
+      char.relationship.toLowerCase().includes(q);
 
-  const allies = filteredCharacters.filter(c =>
-    !c.relationship.toLowerCase().includes('enemy') &&
-    !c.relationship.toLowerCase().includes('adversary') &&
-    !c.relationship.toLowerCase().includes('villain')
-  );
+    const isEnemy =
+      char.relationship.toLowerCase().includes('enemy') ||
+      char.relationship.toLowerCase().includes('adversary') ||
+      char.relationship.toLowerCase().includes('villain') ||
+      char.relationship.toLowerCase().includes('opponent');
 
-  const enemies = filteredCharacters.filter(c =>
-    c.relationship.toLowerCase().includes('enemy') ||
-    c.relationship.toLowerCase().includes('adversary') ||
-    c.relationship.toLowerCase().includes('villain')
-  );
+    if (filterType === 'allies') return matchesSearch && !isEnemy;
+    if (filterType === 'enemies') return matchesSearch && isEnemy;
+    return matchesSearch;
+  });
 
   return (
-    <div className="min-h-screen bg-black pt-20 px-4">
-      <div className="max-w-7xl mx-auto py-12">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-            CHARACTERS
-          </h1>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-            Meet the key figures in Tony Stark's journey
-          </p>
-        </motion.div>
-
-        {/* Search Bar */}
+    <div className="min-h-screen bg-stark-darkest px-4 py-8 md:py-12">
+      <div className="max-w-7xl mx-auto space-y-10">
+        {/* Top Header & Clearance Chip */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="relative max-w-xl mx-auto mb-12"
+          className="text-center space-y-3"
         >
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search characters..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-gray-900 border border-arc-blue/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-arc-blue transition-colors"
-          />
+          <div
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border bg-stark-darker text-[10px] font-mono uppercase tracking-widest"
+            style={{ borderColor: `${theme.primaryColor}50`, color: theme.primaryColor }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ background: theme.primaryColor }} />
+            <span>S.H.I.E.L.D. & STARK DATABASE // INTELLIGENCE DOSSIERS</span>
+          </div>
+
+          <h1 className="font-display text-4xl md:text-6xl font-black uppercase text-white tracking-tight">
+            CHARACTER INTELLIGENCE
+          </h1>
+          <p className="text-sm font-mono text-gray-400 max-w-2xl mx-auto">
+            Classified psychological assessments, weapon signatures, and historical engagements with Tony Stark's inner circle, Avengers allies, and galactic adversaries.
+          </p>
         </motion.div>
 
-        {/* Allies Section */}
-        {allies.length > 0 && (
-          <motion.section
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-16"
-          >
-            <h2 className="text-2xl font-bold text-green-400 mb-6 uppercase tracking-wider">
-              Allies & Associates
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {allies.map((character, index) => (
-                <motion.div
-                  key={character.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  onClick={() => setSelectedCharacter(character)}
-                  className="cursor-pointer group"
+        {/* Search & Filter Bar */}
+        <div className="p-6 rounded-2xl border bg-stark-darker/90 backdrop-blur-xl space-y-6" style={{ borderColor: `${theme.primaryColor}30` }}>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="SEARCH BY CHARACTER NAME, ALIAS, OR AFFILIATION..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-10 py-3.5 bg-black/70 border border-stark-border/60 rounded-xl text-white font-mono text-xs placeholder-gray-500 focus:outline-none focus:border-stark-gold tracking-wider uppercase"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-gray-800 font-mono text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 uppercase mr-2">ALIGNMENT:</span>
+              {[
+                { id: 'all', label: 'ALL DOSSIERS' },
+                { id: 'allies', label: 'ALLIES & AVENGERS' },
+                { id: 'enemies', label: 'ADVERSARIES & THREATS' },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => {
+                    setFilterType(f.id as any);
+                    starkAudio.playClick(900);
+                  }}
+                  className={`px-3.5 py-1.5 rounded-lg uppercase tracking-wider transition-all font-bold cursor-pointer ${
+                    filterType === f.id
+                      ? 'bg-stark-gold text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                      : 'bg-black/50 text-gray-400 hover:text-white border border-gray-800'
+                  }`}
                 >
-                  <div className="bg-gradient-to-br from-gray-900 to-black border border-green-500/20 rounded-xl overflow-hidden hover:border-green-500/50 transition-all duration-300 hover:scale-105">
-                    <div className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                      <Users className="w-16 h-16 text-green-400/30 group-hover:text-green-400/50 transition-colors" />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-white font-bold group-hover:text-green-400 transition-colors">
-                        {character.name}
-                      </h3>
-                      {character.alias && (
-                        <p className="text-sm text-gray-400 mt-1">{character.alias}</p>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
+                  {f.label}
+                </button>
               ))}
             </div>
-          </motion.section>
-        )}
 
-        {/* Enemies Section */}
-        {enemies.length > 0 && (
-          <motion.section
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <h2 className="text-2xl font-bold text-stark-red mb-6 uppercase tracking-wider">
-              Adversaries
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {enemies.map((character, index) => (
-                <motion.div
-                  key={character.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  onClick={() => setSelectedCharacter(character)}
-                  className="cursor-pointer group"
+            <span className="text-gray-500">
+              SHOWING {filteredCharacters.length} DOSSIERS
+            </span>
+          </div>
+        </div>
+
+        {/* Characters Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <AnimatePresence mode="popLayout">
+            {filteredCharacters.map((char, index) => {
+              const isEnemy =
+                char.relationship.toLowerCase().includes('enemy') ||
+                char.relationship.toLowerCase().includes('adversary') ||
+                char.relationship.toLowerCase().includes('villain');
+
+              return (
+                <HolographicCard
+                  key={char.id}
+                  variant="character"
+                  image={char.image}
+                  title={char.name}
+                  subtitle={char.alias || char.relationship}
+                  badges={[
+                    {
+                      text: isEnemy ? 'THREAT / HOSTILE' : 'VERIFIED ALLY',
+                      color: isEnemy ? '#ef4444' : '#22c55e',
+                    },
+                  ]}
+                  metadata={[
+                    { label: 'RELATION', value: char.relationship },
+                    { label: 'DEBUT', value: char.firstAppearance.split('(')[0].trim() },
+                  ]}
+                  onClick={() => {
+                    setSelectedCharacter(char);
+                    starkAudio.playChirp();
+                  }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: Math.min(index * 0.02, 0.3) }}
                 >
-                  <div className="bg-gradient-to-br from-gray-900 to-black border border-stark-red/20 rounded-xl overflow-hidden hover:border-stark-red/50 transition-all duration-300 hover:scale-105">
-                    <div className="aspect-square bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                      <Users className="w-16 h-16 text-stark-red/30 group-hover:text-stark-red/50 transition-colors" />
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-white font-bold group-hover:text-stark-red transition-colors">
-                        {character.name}
-                      </h3>
-                      {character.alias && (
-                        <p className="text-sm text-gray-400 mt-1">{character.alias}</p>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.section>
-        )}
+                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed mt-1">
+                    {char.description}
+                  </p>
+                </HolographicCard>
+              );
+            })}
+          </AnimatePresence>
+        </div>
 
-        {/* Character Detail Modal */}
+        {/* ── Character Detail Modal ──────────────────────────────────────── */}
         <AnimatePresence>
           {selectedCharacter && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 bg-black/90 backdrop-blur-xl overflow-y-auto"
               onClick={() => setSelectedCharacter(null)}
             >
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
+                initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
+                exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-gradient-to-br from-gray-900 to-black border border-arc-blue/30 rounded-2xl max-w-2xl w-full"
+                className="bg-stark-darker border rounded-3xl max-w-3xl w-full p-6 md:p-8 space-y-6 shadow-[0_0_60px_rgba(0,0,0,0.9)] relative"
+                style={{ borderColor: `${theme.primaryColor}50` }}
               >
                 {/* Modal Header */}
-                <div className="border-b border-arc-blue/20 p-6 flex items-start justify-between">
-                  <div>
-                    <h2 className="text-3xl font-bold text-white">{selectedCharacter.name}</h2>
+                <div className="flex items-start justify-between pb-4 border-b border-gray-800">
+                  <div className="space-y-1">
+                    <span className="px-3 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider border border-gray-700 bg-black text-stark-gold">
+                      CLASSIFIED DOSSIER // {selectedCharacter.relationship.toUpperCase()}
+                    </span>
+                    <h2 className="font-display text-2xl md:text-4xl font-black uppercase text-white mt-1">
+                      {selectedCharacter.name}
+                    </h2>
                     {selectedCharacter.alias && (
-                      <p className="text-arc-blue text-lg mt-1">{selectedCharacter.alias}</p>
+                      <p className="text-xs font-mono text-cyan-400">
+                        CODENAME: {selectedCharacter.alias}
+                      </p>
                     )}
                   </div>
+
                   <button
-                    onClick={() => setSelectedCharacter(null)}
-                    className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+                    onClick={() => {
+                      setSelectedCharacter(null);
+                      starkAudio.playClick(700);
+                    }}
+                    className="p-2 hover:bg-gray-800 rounded-xl transition-colors border border-gray-700 text-gray-400 hover:text-white cursor-pointer"
                   >
-                    <X className="w-6 h-6 text-gray-400" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Modal Content */}
-                <div className="p-6">
-                  <div className="flex items-start gap-6 mb-6">
-                    <div className="w-24 h-24 bg-gray-800 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <Users className="w-12 h-12 text-arc-blue/50" />
+                <div className="space-y-6 font-mono text-xs">
+                  <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-gray-800 bg-black/50">
+                    <div>
+                      <span className="text-gray-500 uppercase text-[10px]">RELATIONSHIP WITH STARK:</span>
+                      <p className="text-white font-bold mt-0.5">{selectedCharacter.relationship}</p>
                     </div>
                     <div>
-                      <div className="mb-4">
-                        <h3 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-1">
-                          Relationship
-                        </h3>
-                        <p className="text-white">{selectedCharacter.relationship}</p>
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-1">
-                          First Appearance
-                        </h3>
-                        <p className="text-gray-400">{selectedCharacter.firstAppearance}</p>
-                      </div>
+                      <span className="text-gray-500 uppercase text-[10px]">FIRST CHRONICLED APPEARANCE:</span>
+                      <p className="text-white font-bold mt-0.5">{selectedCharacter.firstAppearance}</p>
                     </div>
                   </div>
 
-                  <div>
-                    <h3 className="text-xs font-semibold text-arc-blue uppercase tracking-wider mb-2">
-                      Description
+                  <div className="p-6 rounded-2xl border border-stark-border/40 bg-black/60 space-y-2">
+                    <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-stark-gold flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      <span>TACTICAL BACKGROUND & PSYCHOLOGICAL PROFILE</span>
                     </h3>
-                    <p className="text-gray-300 leading-relaxed">
+                    <p className="text-sm text-gray-200 leading-relaxed font-sans pt-1">
                       {selectedCharacter.description}
                     </p>
                   </div>
@@ -209,4 +227,4 @@ export function Characters() {
       </div>
     </div>
   );
-}
+};
